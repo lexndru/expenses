@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	ModVersion = "0.1.0"
+	ModVersion = "0.2.0"
 	DateFormat = "Mon 02 Jan 2006" // Layout used instead of "d m Y" abbr
 )
 
@@ -388,9 +388,9 @@ type Transaction struct {
 	CreatedAt    time.Time `json:"-" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time `json:"-" gorm:"autoUpdateTime"`
 
-	Label    *Label `json:"-" gorm:"foreignKey: LabelName"`
-	Sender   *Actor `json:"-" gorm:"foreignKey: SenderName"`
-	Receiver *Actor `json:"-" gorm:"foreignKey: ReceiverName"`
+	Label    *Label `json:"-" gorm:"foreignKey: LabelName; constraint: OnUpdate:CASCADE"`
+	Sender   *Actor `json:"-" gorm:"foreignKey: SenderName; constraint: OnUpdate:CASCADE"`
+	Receiver *Actor `json:"-" gorm:"foreignKey: ReceiverName; constraint: OnUpdate:CASCADE"`
 
 	Details []*Details `json:"details" gorm:"foreignKey: TransactionUUID; references: UUID"`
 }
@@ -452,7 +452,7 @@ type Details struct {
 	UpdatedAt       time.Time `json:"-" gorm:"autoUpdateTime"`
 
 	Transaction *Transaction `json:"-" gorm:"foreignKey: TransactionUUID"`
-	Label       *Label       `json:"-" gorm:"foreignKey: LabelName"`
+	Label       *Label       `json:"-" gorm:"foreignKey: LabelName; constraint: OnUpdate:CASCADE"`
 }
 
 // String representation of transaction's detailed entity
