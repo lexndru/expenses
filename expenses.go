@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	ModVersion = "0.2.0"
+	ModVersion = "0.2.1"
 	DateFormat = "Mon 02 Jan 2006" // Layout used instead of "d m Y" abbr
 )
 
@@ -359,11 +359,11 @@ func (t *Transactions) Push(ctx PushContext) error {
 
 // Pull from registry automatically resolves the relationship between these
 // three components (Actors, Labels, Details) and the results are sorted by
-// the *date* of the real-world transaction authorization
+// the descending *date* of the real-world transaction authorization
 func (t *Transactions) Pull(ctx PullContext) error {
 	q := ctx.Storage.Preload("Details.Label").Preload(clause.Associations)
 
-	return q.Limit(ctx.Limit).Offset(ctx.Offset).Order("Date").Find(t).Error
+	return q.Limit(ctx.Limit).Offset(ctx.Offset).Order("Date DESC").Find(t).Error
 }
 
 // Transaction *is* the key component of the expenses module which bounds
