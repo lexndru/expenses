@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	ModVersion = "0.2.1"
+	ModVersion = "0.3.0"
 	DateFormat = "Mon 02 Jan 2006" // Layout used instead of "d m Y" abbr
 )
 
@@ -383,6 +383,7 @@ type Transaction struct {
 	LabelName    string    `json:"label" gorm:"not null"`
 	SenderName   string    `json:"sender" gorm:"not null"`
 	ReceiverName string    `json:"receiver" gorm:"not null"`
+	Signature    string    `json:"signature" gorm:"type: varchar(36); index; not null"`
 	Flags        uint16    `json:"flags" gorm:"not null"`
 	Headers      string    `json:"headers" gorm:"type: text; not null"`
 	CreatedAt    time.Time `json:"-" gorm:"autoCreateTime"`
@@ -540,8 +541,8 @@ func NewLabel(name string, parent *Label) Label {
 // entity from which all other records can derive. Transaction details can
 // be omitted by providing nil map. This method doesn't handle meta fields
 // such as Flags or Headers
-func NewTransaction(d time.Time, a int64, lb Label, tx, rx Actor, ls map[Label]int64) Transaction {
-	t := Transaction{Date: d, Amount: a, Label: &lb, Sender: &tx, Receiver: &rx}
+func NewTransaction(d time.Time, a int64, lb Label, tx, rx Actor, ls map[Label]int64, z string) Transaction {
+	t := Transaction{Date: d, Amount: a, Label: &lb, Sender: &tx, Receiver: &rx, Signature: z}
 
 	if ls != nil {
 		t.Details = make([]*Details, 0, len(ls))

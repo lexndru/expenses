@@ -159,7 +159,7 @@ func testLabelsAPI(t *testing.T, db *gorm.DB) {
 
 func testTransactionsAPI(t *testing.T, db *gorm.DB) {
 	date, _ := time.Parse("2006-01-02", "2021-04-22")
-	trx := NewTransaction(date, -3000, NewLabel("Alimente", nil), NewActor("Alexandru"), NewActor("Magazin"), nil)
+	trx := NewTransaction(date, -3000, NewLabel("Alimente", nil), NewActor("Alexandru"), NewActor("Magazin"), nil, "signature/0")
 
 	newTransactions := Transactions{trx}
 	if err := newTransactions.Push(PushContext{Storage: db, BatchSize: 10}); err != nil {
@@ -173,6 +173,10 @@ func testTransactionsAPI(t *testing.T, db *gorm.DB) {
 
 	if len(fewTransactions) != 1 || fewTransactions[0].UUID == nil || *fewTransactions[0].UUID == "" {
 		t.Fatal("Pulled transaction doesn't match with pushed transaction")
+	}
+
+	if fewTransactions[0].Signature == "" {
+		t.Fatal("Expected signature on first transaction but got nothing")
 	}
 
 	recentTransactionWithUUID := fewTransactions[0] // this should not get duplicated, but updated
@@ -239,6 +243,12 @@ func testTransactionsAPI(t *testing.T, db *gorm.DB) {
 		for _, ls := range trx.Details {
 			if ls.Amount > 0 {
 				numDetails++
+			}
+		}
+
+		if trx.UUID == recentTransactionWithUUID.UUID {
+			if trx.Signature == "" {
+				t.Fatalf("Expected signature to be kept after upsert but instead got blank")
 			}
 		}
 	}
@@ -342,7 +352,7 @@ func testIncorrectAmountForTransaction(t *testing.T, db *gorm.DB) {
 	ls := make(map[Label]int64, 1)
 	ls[lb] = 50
 
-	trx := NewTransaction(date, -100, NewLabel("?", nil), NewActor("?"), NewActor("?"), ls)
+	trx := NewTransaction(date, -100, NewLabel("?", nil), NewActor("?"), NewActor("?"), ls, "signature/1")
 	incorrectTransactions := Transactions{trx}
 
 	if err := incorrectTransactions.Push(PushContext{Storage: db, BatchSize: 10}); err == nil {
@@ -730,6 +740,7 @@ func TestEncodeDecodeTransactions_Json(t *testing.T) {
 			LabelName:    "?",
 			SenderName:   "?",
 			ReceiverName: "?",
+			Signature:    "?",
 			Details: []*Details{
 				{
 					LabelName: "?",
@@ -754,6 +765,7 @@ func TestEncodeDecodeTransactions_Json(t *testing.T) {
 			"label": "?",
 			"sender": "?",
 			"receiver": "?",
+			"signature": "?",
 			"flags": 0,
 			"headers": "",
 			"details": [
