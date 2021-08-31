@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	ModVersion = "0.3.0"
+	ModVersion = "0.3.1"
 	DateFormat = "Mon 02 Jan 2006" // Layout used instead of "d m Y" abbr
 )
 
@@ -140,7 +140,7 @@ func (a *Actors) Push(ctx PushContext) error {
 // Pull enables to read actors from registry. The results are
 // always sorted by their name
 func (a *Actors) Pull(ctx PullContext) error {
-	q := ctx.Storage.Order("Name").Limit(ctx.Limit).Offset(ctx.Offset)
+	q := ctx.Storage.Order("name").Limit(ctx.Limit).Offset(ctx.Offset)
 
 	return q.Find(a).Error
 }
@@ -227,7 +227,7 @@ func (l *Labels) Push(ctx PushContext) error {
 func (l *Labels) Pull(ctx PullContext) error {
 	q := ctx.Storage.Preload("Parent")
 
-	return q.Limit(ctx.Limit).Offset(ctx.Offset).Order("Name").Find(l).Error
+	return q.Limit(ctx.Limit).Offset(ctx.Offset).Order("name").Find(l).Error
 }
 
 // Label is another key component of the expenses module. A label is
@@ -359,11 +359,11 @@ func (t *Transactions) Push(ctx PushContext) error {
 
 // Pull from registry automatically resolves the relationship between these
 // three components (Actors, Labels, Details) and the results are sorted by
-// the descending *date* of the real-world transaction authorization
+// the descending date & amount of the real-world transaction authorization
 func (t *Transactions) Pull(ctx PullContext) error {
 	q := ctx.Storage.Preload("Details.Label").Preload(clause.Associations)
 
-	return q.Limit(ctx.Limit).Offset(ctx.Offset).Order("Date DESC").Find(t).Error
+	return q.Limit(ctx.Limit).Offset(ctx.Offset).Order("date DESC, amount DESC").Find(t).Error
 }
 
 // Transaction *is* the key component of the expenses module which bounds
