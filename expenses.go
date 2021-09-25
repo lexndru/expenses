@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	ModVersion = "0.3.1"
+	ModVersion = "0.3.2"
 	DateFormat = "Mon 02 Jan 2006" // Layout used instead of "d m Y" abbr
 )
 
@@ -361,7 +361,7 @@ func (t *Transactions) Push(ctx PushContext) error {
 // three components (Actors, Labels, Details) and the results are sorted by
 // the descending date & amount of the real-world transaction authorization
 func (t *Transactions) Pull(ctx PullContext) error {
-	q := ctx.Storage.Preload("Details.Label").Preload(clause.Associations)
+	q := ctx.Storage.Preload("Details")
 
 	return q.Limit(ctx.Limit).Offset(ctx.Offset).Order("date DESC, amount DESC").Find(t).Error
 }

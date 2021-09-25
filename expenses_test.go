@@ -26,22 +26,32 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 var (
-	T_USER = os.Getenv("DB_USER")
-	T_PASS = os.Getenv("DB_PASS")
-	T_ADDR = os.Getenv("DB_ADDR")
-	T_NAME = os.Getenv("DB_NAME")
+	// MariaDB and MySQL
+	MySQL_USER = os.Getenv("MYSQL_DB_USER")
+	MySQL_PASS = os.Getenv("MYSQL_DB_PASS")
+	MySQL_ADDR = os.Getenv("MYSQL_DB_ADDR")
+	MySQL_NAME = os.Getenv("MYSQL_DB_NAME")
+	// PostgreSQL
+	PostgreSQL_USER = os.Getenv("PSQL_DB_USER")
+	PostgreSQL_PASS = os.Getenv("PSQL_DB_PASS")
+	PostgreSQL_HOST = os.Getenv("PSQL_DB_HOST")
+	PostgreSQL_PORT = os.Getenv("PSQL_DB_PORT")
+	PostgreSQL_NAME = os.Getenv("PSQL_DB_NAME")
 )
 
 var (
-	_MySQL  = mysql.Open(T_USER + ":" + T_PASS + "@tcp(" + T_ADDR + ")/" + T_NAME + "?charset=utf8mb4&parseTime=True")
-	_SQLite = sqlite.Open("file::memory:?cache=shared")
+	_Postgres = postgres.Open("host=" + PostgreSQL_HOST + " user=" + PostgreSQL_USER + " password=" + PostgreSQL_PASS + " dbname=" + PostgreSQL_NAME + " port=" + PostgreSQL_PORT + " sslmode=disable")
+	_MySQL    = mysql.Open(MySQL_USER + ":" + MySQL_PASS + "@tcp(" + MySQL_ADDR + ")/" + MySQL_NAME + "?charset=utf8mb4&parseTime=True")
+	_SQLite   = sqlite.Open("file::memory:?cache=shared")
 )
 
 func begin(layer gorm.Dialector) (db *gorm.DB) {
@@ -180,7 +190,7 @@ func testTransactionsAPI(t *testing.T, db *gorm.DB) {
 	}
 
 	recentTransactionWithUUID := fewTransactions[0] // this should not get duplicated, but updated
-	recentTransactionWithUUID.Label.Name = "?"
+	recentTransactionWithUUID.LabelName = "?"
 	recentTransactionWithUUID.Flags = 29
 	recentTransactionWithUUID.Details = []*Details{
 		{
@@ -448,7 +458,7 @@ func testPrimaryRequestsWithTransactions(t *testing.T, db *gorm.DB) {
 			for _, a := range trxs {
 				var foundIt bool
 				for _, b := range trxProbe {
-					if a.Amount == b.Amount && a.Sender.Name == b.Sender.Name && a.Receiver.Name == b.Receiver.Name {
+					if a.Amount == b.Amount && a.SenderName == b.SenderName && a.ReceiverName == b.ReceiverName {
 						foundIt = true
 					}
 				}
@@ -579,6 +589,71 @@ func testEmptyNameChecks(t *testing.T, db *gorm.DB) {
 	if err := (&Labels{l}).Push(PushContext{Storage: db, BatchSize: 1}); err == nil {
 		t.Fatal("Expected push to fail because label has empty name")
 	}
+}
+
+func TestActorsAPI_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	testActorsAPI(t, db)
+}
+
+func TestLabelsAPI_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	testLabelsAPI(t, db)
+}
+
+func TestTransactionsAPI_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	testTransactionsAPI(t, db)
+}
+
+func TestIncorrectAmountForTransaction_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	// silent intentionally errors
+	testIncorrectAmountForTransaction(t, db.Session(&gorm.Session{Logger: logger.Default.LogMode(logger.Silent)}))
+}
+
+func TestPrimaryRequestsWithTransactions_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	testPrimaryRequestsWithTransactions(t, db)
+}
+
+func TestPrimaryRequestsWithLabelsTree_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	testPrimaryRequestsWithLabelsTree(t, db)
+}
+
+func TestTransactionJustAppendFlag_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	testTransactionJustAppendFlag(t, db)
+}
+
+func TestLabelParentUpsert_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	testLabelParentUpsert(t, db)
+}
+
+func TestEmptyNameChecks_Postgres(t *testing.T) {
+	db := begin(_Postgres)
+	defer close(db)
+
+	// silent intentionally errors
+	testEmptyNameChecks(t, db.Session(&gorm.Session{Logger: logger.Default.LogMode(logger.Silent)}))
 }
 
 func TestActorsAPI_MySQL(t *testing.T) {
